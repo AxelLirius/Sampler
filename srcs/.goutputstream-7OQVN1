@@ -1,0 +1,246 @@
+#include "../includes/AkaiMPD218.hpp"
+#include <stdio.h>
+#include <stdlib.h>
+
+AkaiMPD218 :: AkaiMPD218()
+ :MidiDevice()
+ {}
+
+void AkaiMPD218::populate()
+{
+		
+		for(int i = 0; i<16; i++)
+		{
+			Program program(i);
+			this->listofProgram.push_back(program);
+		}
+
+		for(int i = 0; i < 16; i++)
+		{
+			Bank bankA('A');
+			Bank bankB('B');
+			Bank bankC('C');
+			for(int j = 0; j<48; j++)
+			{
+				if(j<=15)
+				{
+					if(j>=8)
+					{
+						Pad pad("./sounds/Program" + to_string(i+1) + "/BankA/pad" + to_string(j) + ".wav", true, j );
+						bankA.addPad(pad);
+						
+					}
+					else
+					{
+						Pad pad("./sounds/Program" + to_string(i+1) + "/BankA/pad" + to_string(j) + ".wav", false, j );
+						bankA.addPad(pad);
+					}
+					
+				}
+				else if(j>15 and j<=31)
+				{
+					if(j>=24)
+					{
+						Pad pad("./sounds/Program" + to_string(i+1) + "/BankB/pad" + to_string(j) + ".wav", true, j );
+						bankB.addPad(pad);
+					}
+					else
+					{
+						Pad pad("./sounds/Program" + to_string(i+1) + "/BankB/pad" + to_string(j) + ".wav", false, j );
+						bankB.addPad(pad);
+
+					}
+					
+				}
+				else if(j>31 and j<=47)
+				{
+					Pad pad("./sounds/Program" + to_string(i+1) + "/BankC/pad" + to_string(j) + ".wav", false, j );
+					bankC.addPad(pad);
+					
+					
+				}
+				
+			}
+			this->listofProgram.at(i).addBank(bankA);
+			this->listofProgram.at(i).addBank(bankB);
+			this->listofProgram.at(i).addBank(bankC);
+		}
+}
+
+void AkaiMPD218::start()
+{
+	bool Loop = false;
+	std::vector<unsigned char> bankloop;
+	std::vector<unsigned char> messageout;
+	std::vector<int> padTouchLoop;
+	Program program(2);
+	Program programLoop(2);
+	int nBytes, i;
+	int bitze = 0;
+	int poiLoop = -1;
+	double stamp = 0;
+	unsigned char pad;
+	unsigned char velocite;
+	int Loopretrro = 0;
+	int volume = 100;
+	int savevolume;
+	unsigned char canal;
+	Pad padLoop("", false, 6 );
+	system("amixer -D pulse sset Master 100%");
+	while (1) {
+		if(Loop == true)
+		{
+			if(messageout.size() >0 and Loopretrro < 500)
+			{
+				midiout->sendMessage(&messageout);
+				Loopretrro++;
+			}
+			if(this->listofProgram.at(poiLoop).listofBank.at(bankloop.at(0) - 65).listofPad.at(padTouchLoop.at(0)).isReading() == false)
+			{
+				if(bankloop.size() > 1)
+				{
+					bankloop.erase(bankloop.begin());
+					padTouchLoop.erase(padTouchLoop.begin());
+					Loopretrro =0;
+					messageout[1] = padTouchLoop.at(0);
+				}
+				this->listofProgram.at(poiLoop).listofBank.at(bankloop.at(0) - 65).listofPad.at(padTouchLoop.at(0)).play(volume);	 	
+			}
+		}
+		std::vector<unsigned char> message;
+		stamp = midiin->getMessage( &message );	
+		if(message.size() > 0)
+		{
+			for ( i=0; i<message.size(); i++)
+			{
+				std::cout << "Byte " << i << " = " << (int)message[i] << ", ";
+				if(i == 2)
+				{
+					cout << endl;
+				}
+			}
+			canal = message[0];
+			pad = message[1];
+			velocite = message[2];
+			for(int i = 142; i<= 160; i++)
+			{
+				if((int)canal == i and canal != 160 or canal == 176)
+				{
+					int poi = i - 144;
+					if((int)pad <= 15)
+					{
+						if(this->listofProgram.at(poi).listofBank.at(0).listofPad.at(pad).Loop() == true and bankloop.size() != 0)
+						{
+								if(bankloop.at(0) == 'A' and pad == padTouchLoop.at(0))
+								{
+									Loop = false;
+									this->listofProgram.at(poi).listofBank.at(0).listofPad.at(pad).stopLoop();
+									bankloop.clear();
+									padTouchLoop.clear();
+									
+								}
+								else
+								{
+									if(bankloop.size() > 1)
+									{
+										bankloop.erase(bankloop.begin()+1);
+										padTouchLoop.erase(padTouchLoop.begin()+1);
+									}
+									bankloop.push_back('A');
+									padTouchLoop.push_back((int)pad);
+									programLoop = program; 
+									cout << "Boucle 2 remplacé" <<endl;
+								}
+						}
+						else
+						{
+							if(this->listofProgram.at(poi).listofBank.at(0).listofPad.at(pad).Loop() == true)
+							{
+								
+								Loop = true;
+								bankloop.push_back('A');
+								padTouchLoop.push_back((int)pad);
+								poiLoop = poi;
+								messageout = message;
+								Loopretrro =0;
+							}
+							else
+							{
+								cout << "son normal joué" <<endl;
+								this->listofProgram.at(poi).listofBank.at(0).listofPad.at(pad).play(volume);
+							}
+						}
+					  }
+					  else if((int)pad <= 31)
+					  {
+						if(this->listofProgram.at(poi).listofBank.at(1).listofPad.at(pad - 16).Loop() == true and bankloop.size() != 0)
+						{
+							cout << padTouchLoop.at(0) <<endl;
+							if(bankloop.at(0) == 'B' and pad - 16 == padTouchLoop.at(0))
+							{
+								Loop = false;
+								this->listofProgram.at(poi).listofBank.at(1).listofPad.at(pad - 16).stopLoop();
+								bankloop.clear();
+								padTouchLoop.clear();
+							}
+							else
+							{
+								if(bankloop.size() > 1)
+								{
+									bankloop.erase(bankloop.begin()+1);
+									padTouchLoop.erase(padTouchLoop.begin()+1);
+								}
+								bankloop.push_back('B');
+								padTouchLoop.push_back((int)pad - 16);
+								programLoop = program;
+								cout << "Boucle 2 remplacé" <<endl;
+							}
+						}
+						else
+						{
+							if(this->listofProgram.at(poi).listofBank.at(1).listofPad.at(pad - 16).Loop() == true)
+							{
+								cout << "Boucle normal joué" <<endl;
+								Loop = true;
+								bankloop.push_back('B');
+								padTouchLoop.push_back((int)pad - 16);
+								poiLoop = poi;
+								messageout = message;
+								Loopretrro =0;
+							}
+							else
+							{
+								cout << "son normal joué" <<endl;
+								this->listofProgram.at(poi).listofBank.at(1).listofPad.at(pad - 16).play(volume);
+							}
+						}
+					  }
+					  else if((int)pad <= 47)
+					  {
+						  this->listofProgram.at(poi).listofBank.at(2).listofPad.at(pad - 32).play(volume);
+					  }
+					  else if((int)pad == 51)
+					  {
+					    savevolume = volume;
+						volume = velocite;
+						if(volume%10 == 0 and savevolume > volume)
+						{
+							system("amixer -D pulse sset Master 10%-");
+						}
+						else if(volume%10 == 0 and savevolume < volume)
+						{
+							system("amixer -D pulse sset Master 10%+");
+						}
+					  } 
+				}
+			}
+		}
+	
+	}
+}
+
+
+
+
+
+
