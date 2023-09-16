@@ -1,11 +1,5 @@
 #!/bin/bash
 
-###############################################
-#               PTS3 - Sampleur
-#  Script de configuration de l'environnement
-#           Mise à jour : 06/04/2021
-###############################################
-
 samplerLocation=$(pwd)
 
 echo "-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/-/"
