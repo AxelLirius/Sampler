@@ -2,8 +2,6 @@
 
 <font size="4"> <strong>This project was realized on Raspberry PI 4 and coded in C++.</strong> </font> 
 
-<style>body {text-align: justify}</style>
-
 To carry out this project, i needed a Pad Controller, the AKAI MPD 218,which is the basis of the project
 
 ![AKAI MPD 218](ImageReadme/AKAI.png)
