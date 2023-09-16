@@ -157,7 +157,7 @@ void Pad::play(int volume)
 }
 ```
 
-Pour ne pas charger 768 musiques dans la mémoire, j'utilise un système de Init
+To avoid loading 768 songs into memory, I use a system of Init
 
 Example with code : 
 
